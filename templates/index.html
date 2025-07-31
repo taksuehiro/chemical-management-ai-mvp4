@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>化学物質管理AI支援サービス - SDS→IMDS変換 + 相談チャット</title>
+    <title>化学物質管理AI支援サービス - SDS→IMDS変換支援</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -17,7 +17,7 @@
             border-radius: 20px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             margin: 2rem auto;
-            max-width: 1000px;
+            max-width: 1200px;
         }
         .header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -99,11 +99,81 @@
             display: none;
             margin: 2rem 0;
         }
+        
+        /* 信頼度システム用スタイル */
+        .confidence-high {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .confidence-medium {
+            background-color: #fff3cd;
+            border-color: #ffeaa7;
+            color: #856404;
+        }
+        .confidence-low {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .confidence-badge {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+        .warning-alert {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+        }
+        .alternatives-list {
+            background-color: #e9ecef;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin: 0.5rem 0;
+        }
+        .ai-disclaimer {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 2px solid #dee2e6;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .review-required {
+            border-left: 4px solid #dc3545;
+            background-color: #f8f9fa;
+            padding: 1rem;
+            margin: 0.5rem 0;
+        }
+        .confidence-summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+        }
+        .confidence-bar {
+            background-color: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            height: 20px;
+            margin: 1rem 0;
+            overflow: hidden;
+        }
+        .confidence-fill {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+        
         .data-card {
             background: #f8f9fa;
             border-radius: 10px;
             padding: 1.5rem;
             margin: 1rem 0;
+            border-left: 4px solid #667eea;
         }
         .btn-custom {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -233,7 +303,7 @@
         <div class="main-container">
             <div class="header">
                 <h1><i class="fas fa-flask"></i> 化学物質管理AI支援サービス</h1>
-                <p class="mb-0">SDS → IMDS 変換 + 化学物質相談チャット</p>
+                <p class="mb-0">AIは支援ツールです。最終判断は専門家による確認が必要です。</p>
             </div>
             
             <div class="content">
@@ -241,7 +311,7 @@
                 <ul class="nav nav-tabs" id="mainTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="converter-tab" data-bs-toggle="tab" data-bs-target="#converter" type="button" role="tab">
-                            <i class="fas fa-file-export"></i> SDS→IMDS変換
+                            <i class="fas fa-file-export"></i> SDS→IMDS変換支援
                         </button>
                     </li>
                     <li class="nav-item" role="presentation">
@@ -292,24 +362,49 @@
                         <!-- ステップ3: 結果表示 -->
                         <div class="result-container" id="result-step">
                             <h3 class="text-center mb-4">ステップ3: 変換完了</h3>
-                            <div class="alert alert-success text-center">
-                                <i class="fas fa-check-circle fa-2x mb-2"></i>
-                                <h5>IMDSファイルの生成が完了しました！</h5>
+                            
+                            <!-- AI免責事項 -->
+                            <div class="ai-disclaimer">
+                                <h5><i class="fas fa-exclamation-triangle"></i> AI支援ツールの利用について</h5>
+                                <p>このシステムはAIによる支援ツールです。抽出された情報は参考値であり、最終的な判断は専門家による確認が必要です。特に信頼度の低い項目については、必ず人間による検証を行ってください。</p>
+                                <ul class="mb-0">
+                                    <li>信頼度60%未満の項目は専門家に相談してください</li>
+                                    <li>警告が表示されている項目は特に注意深く確認してください</li>
+                                    <li>代替案が提示されている場合は、用途に応じて適切な選択を行ってください</li>
+                                    <li>最終的なIMDSデータは責任者による承認を得てから使用してください</li>
+                                </ul>
                             </div>
                             
-                            <div class="data-card">
-                                <h6><i class="fas fa-info-circle"></i> 抽出された情報</h6>
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p><strong>化学物質名:</strong> <span id="chemical-name">-</span></p>
-                                        <p><strong>CAS番号:</strong> <span id="cas-number">-</span></p>
-                                        <p><strong>分子量:</strong> <span id="molecular-weight">-</span></p>
+                            <!-- 信頼度サマリー -->
+                            <div class="confidence-summary">
+                                <h5><i class="fas fa-chart-pie"></i> 信頼度サマリー</h5>
+                                <div class="row text-center">
+                                    <div class="col-md-3">
+                                        <h4 id="high-confidence-count">0</h4>
+                                        <small>高信頼度</small>
                                     </div>
-                                    <div class="col-md-6">
-                                        <p><strong>有害性区分:</strong> <span id="hazard-class">-</span></p>
-                                        <p><strong>濃度:</strong> <span id="concentration">-</span></p>
+                                    <div class="col-md-3">
+                                        <h4 id="medium-confidence-count">0</h4>
+                                        <small>中信頼度</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 id="low-confidence-count">0</h4>
+                                        <small>低信頼度</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h4 id="review-required-count">0</h4>
+                                        <small>要確認</small>
                                     </div>
                                 </div>
+                                <div class="confidence-bar">
+                                    <div class="confidence-fill" id="overall-confidence-bar" style="width: 0%"></div>
+                                </div>
+                                <p class="mb-0">全体信頼度: <span id="overall-confidence-percent">0</span>%</p>
+                            </div>
+                            
+                            <!-- 抽出されたデータ -->
+                            <div id="extracted-data-container">
+                                <!-- 動的に生成される -->
                             </div>
                             
                             <div class="text-center mt-4">
@@ -477,13 +572,103 @@
         }
 
         function showResults(data) {
-            document.getElementById('chemical-name').textContent = data.extracted_data.chemical_name;
-            document.getElementById('cas-number').textContent = data.extracted_data.cas_number;
-            document.getElementById('molecular-weight').textContent = data.extracted_data.molecular_weight;
-            document.getElementById('hazard-class').textContent = data.extracted_data.hazard_class;
-            document.getElementById('concentration').textContent = data.extracted_data.concentration;
+            // 信頼度サマリーを更新
+            document.getElementById('high-confidence-count').textContent = data.summary.high_confidence_items;
+            document.getElementById('medium-confidence-count').textContent = data.summary.medium_confidence_items;
+            document.getElementById('low-confidence-count').textContent = data.summary.low_confidence_items;
+            document.getElementById('review-required-count').textContent = data.summary.requires_review_items;
+            document.getElementById('overall-confidence-percent').textContent = data.summary.overall_confidence;
+            
+            // 全体信頼度バーを更新
+            const confidenceBar = document.getElementById('overall-confidence-bar');
+            confidenceBar.style.width = data.summary.overall_confidence + '%';
+            
+            // 抽出されたデータを表示
+            displayExtractedData(data.extracted_data);
             
             showStep(3);
+        }
+
+        function displayExtractedData(data) {
+            const container = document.getElementById('extracted-data-container');
+            container.innerHTML = '<h5 class="mb-3"><i class="fas fa-list"></i> 抽出された情報</h5>';
+            
+            for (const [key, item] of Object.entries(data)) {
+                const card = document.createElement('div');
+                card.className = 'data-card';
+                
+                let warningsHtml = '';
+                if (item.warnings && item.warnings.length > 0) {
+                    warningsHtml = `
+                        <div class="warning-alert">
+                            <i class="fas fa-exclamation-triangle"></i> <strong>警告:</strong>
+                            <ul class="mb-0 mt-1">
+                                ${item.warnings.map(warning => `<li>${warning}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                let alternativesHtml = '';
+                if (item.alternatives && item.alternatives.length > 0) {
+                    alternativesHtml = `
+                        <div class="alternatives-list">
+                            <i class="fas fa-lightbulb"></i> <strong>代替案:</strong>
+                            <ul class="mb-0 mt-1">
+                                ${item.alternatives.map(alt => `<li>${alt}</li>`).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+                
+                const reviewRequiredClass = item.requires_human_review ? 'review-required' : '';
+                const reviewRequiredIcon = item.requires_human_review ? '<i class="fas fa-user-check text-danger"></i> ' : '';
+                
+                card.innerHTML = `
+                    <div class="${reviewRequiredClass}">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="mb-0">${reviewRequiredIcon}${getFieldDisplayName(key)}</h6>
+                            <span class="confidence-badge confidence-${getConfidenceClass(item.confidence)}">
+                                ${getConfidenceText(item.confidence)} (${item.confidence}%)
+                            </span>
+                        </div>
+                        <p class="mb-2"><strong>値:</strong> ${item.value}</p>
+                        <p class="mb-2"><small class="text-muted"><strong>根拠:</strong> ${item.reasoning}</small></p>
+                        ${warningsHtml}
+                        ${alternativesHtml}
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            }
+        }
+
+        function getFieldDisplayName(key) {
+            const fieldNames = {
+                'chemical_name': '化学物質名',
+                'cas_number': 'CAS番号',
+                'molecular_weight': '分子量',
+                'hazard_class': '有害性区分',
+                'concentration': '濃度',
+                'flash_point': '引火点',
+                'boiling_point': '沸点',
+                'density': '密度',
+                'solubility': '溶解度',
+                'storage_conditions': '保管条件'
+            };
+            return fieldNames[key] || key;
+        }
+
+        function getConfidenceClass(confidence) {
+            if (confidence >= 80) return 'high';
+            if (confidence >= 60) return 'medium';
+            return 'low';
+        }
+
+        function getConfidenceText(confidence) {
+            if (confidence >= 80) return '高信頼度';
+            if (confidence >= 60) return '中信頼度';
+            return '低信頼度';
         }
 
         function showStep(step) {
