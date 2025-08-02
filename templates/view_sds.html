@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SDS確認 - {{ sds_data.name }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .pdf-container {
+            height: 90vh;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .pdf-viewer {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .header-info {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- 戻るボタン -->
+        <a href="/" class="btn btn-outline-secondary back-button">
+            <i class="fas fa-arrow-left me-2"></i>戻る
+        </a>
+
+        <!-- ヘッダー情報 -->
+        <div class="header-info">
+            <div class="row">
+                <div class="col-md-8">
+                    <h4><i class="fas fa-file-pdf text-danger me-2"></i>{{ sds_data.name }}</h4>
+                    <p class="text-muted mb-0">{{ sds_data.supplier }}</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="/" class="btn btn-primary">
+                        <i class="fas fa-arrow-right me-2"></i>IMDS変換へ
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- PDFビューアー -->
+        <div class="pdf-container">
+            <iframe 
+                id="pdf-viewer"
+                class="pdf-viewer"
+                src="/static/samples/{{ sds_data.filename }}"
+                title="SDS PDF Viewer">
+            </iframe>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // PDFビューアーの初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            const pdfViewer = document.getElementById('pdf-viewer');
+            
+            // PDFが読み込まれない場合のフォールバック
+            pdfViewer.onerror = function() {
+                pdfViewer.innerHTML = `
+                    <div class="d-flex justify-content-center align-items-center h-100">
+                        <div class="text-center">
+                            <i class="fas fa-file-pdf fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">SDS文書のプレビュー</p>
+                            <p class="text-muted small">PDFファイル: {{ sds_data.filename }}</p>
+                        </div>
+                    </div>
+                `;
+            };
+        });
+    </script>
+</body>
+</html> 

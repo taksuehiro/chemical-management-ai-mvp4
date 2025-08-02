@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>化学物質管理AI支援サービス - MVP5</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .confidence-badge {
+            font-size: 0.8em;
+        }
+        .checklist-item {
+            border-left: 4px solid #dee2e6;
+            transition: all 0.3s ease;
+        }
+        .checklist-item.accepted {
+            border-left-color: #28a745;
+            background-color: #f8fff9;
+        }
+        .checklist-item.rejected {
+            border-left-color: #dc3545;
+            background-color: #fff8f8;
+        }
+        .checklist-item.modified {
+            border-left-color: #ffc107;
+            background-color: #fffdf8;
+        }
+        .imds-preview {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 0.375rem;
+        }
+        .imds-table {
+            background-color: white;
+        }
+        .sample-card {
+            transition: transform 0.2s ease;
+        }
+        .sample-card:hover {
+            transform: translateY(-2px);
+        }
+        .chat-container {
+            height: 400px;
+            overflow-y: auto;
+        }
+        .chat-message {
+            margin-bottom: 1rem;
+        }
+        .chat-message.user {
+            text-align: right;
+        }
+        .chat-message.assistant {
+            text-align: left;
+        }
+        .chat-bubble {
+            display: inline-block;
+            max-width: 70%;
+            padding: 0.75rem;
+            border-radius: 1rem;
+        }
+        .chat-bubble.user {
+            background-color: #007bff;
+            color: white;
+        }
+        .chat-bubble.assistant {
+            background-color: #e9ecef;
+            color: #212529;
+        }
+        .sample-file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+        .sample-file-item:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .draggable-file {
+            cursor: grab;
+        }
+        .draggable-file:active {
+            cursor: grabbing;
+        }
+        .drop-zone.dragover {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+        }
+        .drop-zone.uploading {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+        }
+        .extraction-card .card.accepted {
+            background-color: #d4edda !important;
+            border-color: #c3e6cb !important;
+        }
+        .extraction-card .card.rejected {
+            background-color: #f8d7da !important;
+            border-color: #f5c6cb !important;
+        }
+        .extraction-card .card.modified {
+            background-color: #fff3cd !important;
+            border-color: #ffeaa7 !important;
+        }
+        .extraction-card .card.saved {
+            background-color: #d1ecf1 !important;
+            border-color: #bee5eb !important;
+        }
+        .modify-input-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .modify-input-group input {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        /* ドロップエリアのスタイル */
+        .drop-zone {
+            border: 3px dashed #dee2e6;
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        .drop-zone:hover {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+        }
+        .drop-zone.dragover {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+            transform: scale(1.02);
+        }
+        .drop-zone.uploading {
+            border-color: #007bff;
+            background-color: #e7f3ff;
+        }
+        .drop-zone-content {
+            width: 100%;
+        }
+        
+        /* サンプルファイルリストのスタイル */
+        .sample-file-list {
+            margin-top: 2rem;
+        }
+        .sample-file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            background-color: white;
+            transition: all 0.3s ease;
+        }
+        .sample-file-item:hover {
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        .sample-file-item .btn {
+            margin-left: 1rem;
+            min-width: 120px;
+        }
+        .draggable-file {
+            cursor: grab;
+        }
+        .draggable-file:active {
+            cursor: grabbing;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- ヘッダー -->
+        <div class="row bg-primary text-white py-3">
+            <div class="col">
+                <h1 class="mb-0">
+                    <i class="fas fa-flask me-2"></i>
+                    化学物質管理AI支援サービス
+                </h1>
+                <p class="mb-0">SDS→IMDS変換 & 化学物質相談チャットボット</p>
+            </div>
+        </div>
+
+        <!-- メインコンテンツ -->
+        <div class="row mt-4">
+            <div class="col">
+                <!-- タブナビゲーション -->
+                <ul class="nav nav-tabs" id="mainTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="sds-tab" data-bs-toggle="tab" data-bs-target="#sds-content" type="button" role="tab">
+                            <i class="fas fa-file-alt me-2"></i>SDS→IMDS変換
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="chat-tab" data-bs-toggle="tab" data-bs-target="#chat-content" type="button" role="tab">
+                            <i class="fas fa-comments me-2"></i>化学物質相談
+                        </button>
+                    </li>
+                </ul>
+
+                <!-- タブコンテンツ -->
+                <div class="tab-content" id="mainTabsContent">
+                    <!-- SDS→IMDS変換タブ -->
+                    <div class="tab-pane fade show active" id="sds-content" role="tabpanel">
+                        <div class="row mt-4">
+                            <!-- ファイルドロップエリア -->
+                <div class="col-12" id="step1">
+                    <div class="drop-zone" id="dropZone">
+                        <div class="drop-zone-content">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+                            <h5>ここにSDSファイルをドロップしてください</h5>
+                            <p class="text-muted">PDFファイルであればどのファイルでも対応しています</p>
+                            
+                            <div class="upload-progress d-none" id="uploadProgress">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2">IMDS変換中...</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- サンプルファイルリスト -->
+                    <div class="sample-file-list">
+                        <h5><i class="fas fa-eye me-2"></i>サンプルSDSファイル</h5>
+                        <p class="text-muted mb-3">以下のファイルを確認してからドロップしてください</p>
+                        <div class="sample-file-item draggable-file" data-filename="mk_ethanol_et9901.pdf" draggable="true">
+                            <div>
+                                <strong>精製エタノール（ET-9901）</strong>
+                                <br><small class="text-muted">MKケミカル株式会社</small>
+                            </div>
+                            <div>
+                                <a href="/view_sds/mk_chemical/ethanol" class="btn btn-sm btn-info text-dark">
+                                    <i class="fas fa-eye me-1"></i>PDF確認
+                                </a>
+                            </div>
+                        </div>
+                        <div class="sample-file-item draggable-file" data-filename="kao_surfactant_ks2000.pdf" draggable="true">
+                            <div>
+                                <strong>界面活性剤（KS-2000）</strong>
+                                <br><small class="text-muted">KAOChemical株式会社</small>
+                            </div>
+                            <div>
+                                <a href="/view_sds/kao_chemical/surfactant" class="btn btn-sm btn-info text-dark">
+                                    <i class="fas fa-eye me-1"></i>PDF確認
+                                </a>
+                            </div>
+                        </div>
+                        <div class="sample-file-item draggable-file" data-filename="ico_ptfe_pt5000.pdf" draggable="true">
+                            <div>
+                                <strong>PTFE樹脂（PT-5000）</strong>
+                                <br><small class="text-muted">ICO RALLY Inc.</small>
+                            </div>
+                            <div>
+                                <a href="/view_sds/ico_rally/ptfe" class="btn btn-sm btn-info text-dark">
+                                    <i class="fas fa-eye me-1"></i>PDF確認
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                            <!-- ステップ2: AI抽出結果とチェックリスト -->
+                            <div class="col-12 d-none" id="step2">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-robot me-2"></i>
+                                            ステップ2: AI抽出結果の確認
+                                        </h5>
+                                        <small class="text-muted">各項目を確認し、Accept/Reject/修正を行ってください</small>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="extraction-checklist">
+                                            <!-- AI抽出結果がここに表示されます -->
+                                        </div>
+                                        <div class="text-center mt-3">
+                                            <button class="btn btn-primary" onclick="generateIMDSPreview()">
+                                                <i class="fas fa-eye me-2"></i>IMDSプレビュー生成
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ステップ3: IMDSプレビュー -->
+                            <div class="col-12 d-none" id="step3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-table me-2"></i>
+                                            ステップ3: IMDS形式プレビュー
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="imds-preview">
+                                            <!-- IMDSプレビューがここに表示されます -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 化学物質相談タブ -->
+                    <div class="tab-pane fade" id="chat-content" role="tabpanel">
+                        <div class="row mt-4">
+                            <div class="col-md-8">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">
+                                            <i class="fas fa-comments me-2"></i>
+                                            化学物質相談チャットボット
+                                        </h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chat-container" id="chat-messages">
+                                            <div class="chat-message assistant">
+                                                <div class="chat-bubble assistant">
+                                                    こんにちは！化学物質に関する質問にお答えします。有害性、保管方法、廃棄方法、代替物質、規制対応などについてお聞かせください。
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="input-group mt-3">
+                                            <input type="text" class="form-control" id="chat-input" placeholder="質問を入力してください...">
+                                            <button class="btn btn-primary" onclick="sendChatMessage()">
+                                                <i class="fas fa-paper-plane"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">よくある質問</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="d-grid gap-2">
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="askQuestion('有害性')">
+                                                有害性について
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="askQuestion('保管方法')">
+                                                保管方法を教えて
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="askQuestion('廃棄方法')">
+                                                廃棄方法は？
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="askQuestion('代替物質')">
+                                                代替物質はありますか？
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm" onclick="askQuestion('規制対応')">
+                                                REACH規制の対応は？
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 修正モーダル -->
+    <div class="modal fade" id="modifyModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">値を修正</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">項目名</label>
+                        <input type="text" class="form-control" id="modify-field-name" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">修正値</label>
+                        <input type="text" class="form-control" id="modify-value">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+                    <button type="button" class="btn btn-primary" onclick="confirmModify()">修正確定</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentModifyField = null;
+
+        // サンプル選択
+        function selectSample(sampleId) {
+            fetch('/process_sample', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ sample_id: sampleId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayExtractionResults(data.extraction_result, data.sample_info);
+                    document.getElementById('step1').classList.add('d-none');
+                    document.getElementById('step2').classList.remove('d-none');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // 抽出結果の表示
+        function displayExtractionResults(extractionResult) {
+            const checklist = document.getElementById('extraction-checklist');
+            if (!checklist) {
+                console.error('extraction-checklist element not found');
+                return;
+            }
+            
+            let html = '<div class="extraction-results">';
+            for (const [field, data] of Object.entries(extractionResult)) {
+                const confidenceColor = getConfidenceColor(data.confidence);
+                const confidenceText = getConfidenceText(data.confidence);
+                
+                html += `
+                    <div class="extraction-card mb-3" id="card-${field}">
+                        <div class="card">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="card-title">${getFieldDisplayName(field)}</h6>
+                                        <p class="card-text" id="value-${field}">${data.value}</p>
+                                        <small class="text-muted">信頼度: <span class="badge ${confidenceColor}">${confidenceText}</span></small>
+                                    </div>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-success" onclick="acceptReject('${field}', 'accept')">
+                                            <i class="fas fa-check"></i> Accept
+                                        </button>
+                                        <button class="btn btn-sm btn-danger" onclick="acceptReject('${field}', 'reject')">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
+                                        <button class="btn btn-sm btn-warning" onclick="acceptReject('${field}', 'modify')">
+                                            <i class="fas fa-edit"></i> Modify
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            checklist.innerHTML = html;
+        }
+
+        function displayIMDSPreview(imdsHierarchy) {
+            const preview = document.getElementById('imds-preview');
+            if (!preview) {
+                console.error('imds-preview element not found');
+                return;
+            }
+            
+            let html = `
+                <div class="imds-preview">
+                    <h6><i class="fas fa-table me-2"></i>IMDS階層構造</h6>
+                    <div class="imds-tree">
+                        <!-- Level 1: Component -->
+                        <div class="imds-level imds-level-1">
+                            <h6><i class="fas fa-cube me-2"></i>Component: ${imdsHierarchy.component.name}</h6>
+                            <div class="imds-details">
+                                <p><strong>部品番号:</strong> ${imdsHierarchy.component.component_number}</p>
+                                <p><strong>重量:</strong> ${imdsHierarchy.component.weight}g</p>
+                                <p><strong>用途:</strong> ${imdsHierarchy.component.application}</p>
+                                <p><strong>供給者:</strong> ${imdsHierarchy.component.supplier_name}</p>
+                                <p><strong>信頼度:</strong> <span class="badge bg-primary">${imdsHierarchy.component.confidence}%</span></p>
+                            </div>
+                        </div>
+                        
+                        <!-- Level 2: Semi-Components -->
+                        ${imdsHierarchy.semi_components.map(semi => `
+                            <div class="imds-level imds-level-2">
+                                <h6><i class="fas fa-cogs me-2"></i>Semi-Component: ${semi.name}</h6>
+                                <div class="imds-details">
+                                    <p><strong>重量:</strong> ${semi.weight}g</p>
+                                    <p><strong>加工プロセス:</strong> ${semi.processing_method}</p>
+                                    <p><strong>含有率:</strong> ${semi.content_percentage}%</p>
+                                    <p><strong>信頼度:</strong> <span class="badge bg-success">${semi.confidence}%</span></p>
+                                </div>
+                            </div>
+                        `).join('')}
+                        
+                        <!-- Level 3: Materials -->
+                        ${imdsHierarchy.materials.map(material => `
+                            <div class="imds-level imds-level-3">
+                                <h6><i class="fas fa-flask me-2"></i>Material: ${material.name}</h6>
+                                <div class="imds-details">
+                                    <p><strong>分類:</strong> ${material.category}</p>
+                                    <p><strong>材料番号:</strong> ${material.material_number}</p>
+                                    <p><strong>密度:</strong> ${material.density} g/cm³</p>
+                                    <p><strong>融点:</strong> ${material.melting_point}°C</p>
+                                    <p><strong>含有率:</strong> ${material.content_percentage}%</p>
+                                    <p><strong>信頼度:</strong> <span class="badge bg-warning">${material.confidence}%</span></p>
+                                </div>
+                            </div>
+                        `).join('')}
+                        
+                        <!-- Level 4: Substances -->
+                        ${imdsHierarchy.substances.map(substance => `
+                            <div class="imds-level imds-level-4">
+                                <h6><i class="fas fa-atom me-2"></i>Substance: ${substance.name}</h6>
+                                <div class="imds-details">
+                                    <p><strong>CAS番号:</strong> ${substance.cas_number}</p>
+                                    <p><strong>分子式:</strong> ${substance.molecular_formula}</p>
+                                    <p><strong>分子量:</strong> ${substance.molecular_weight} g/mol</p>
+                                    <p><strong>GADSL分類:</strong> ${substance.gadsl_classification}</p>
+                                    <p><strong>REACH登録:</strong> ${substance.reach_registration}</p>
+                                    <p><strong>含有率:</strong> ${substance.content_percentage}%</p>
+                                    <p><strong>信頼度:</strong> <span class="badge bg-danger">${substance.confidence}%</span></p>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- データ品質情報 -->
+                    <div class="imds-quality mt-3">
+                        <h6><i class="fas fa-chart-line me-2"></i>データ品質情報</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <p><strong>分析方法:</strong> ${imdsHierarchy.data_quality.analytical_method}</p>
+                                <p><strong>検証日:</strong> ${imdsHierarchy.data_quality.verification_date}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p><strong>承認者:</strong> ${imdsHierarchy.data_quality.approver}</p>
+                                <p><strong>リサイクル可能性:</strong> ${imdsHierarchy.data_quality.recyclability}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 総濃度チェック -->
+                    <div class="imds-concentration mt-3">
+                        <h6><i class="fas fa-percentage me-2"></i>総濃度チェック</h6>
+                        <p><strong>総濃度:</strong> ${imdsHierarchy.total_concentration}%</p>
+                        ${imdsHierarchy.total_concentration !== 100 ? 
+                            '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>総濃度が100%ではありません。データの確認が必要です。</div>' : 
+                            '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>総濃度は正常です。</div>'
+                        }
+                    </div>
+                </div>
+            `;
+            preview.innerHTML = html;
+        }
+
+        function getFieldDisplayName(field) {
+            const displayNames = {
+                'chemical_name': '化学物質名',
+                'cas_number': 'CAS番号',
+                'molecular_weight': '分子量',
+                'hazard_class': '危険有害性分類',
+                'concentration': '濃度',
+                'flash_point': '引火点',
+                'boiling_point': '沸点',
+                'density': '密度',
+                'physical_state': '物理状態',
+                'storage_conditions': '保管条件'
+            };
+            return displayNames[field] || field;
+        }
+
+        function getConfidenceColor(confidence) {
+            if (confidence >= 90) return 'bg-success';
+            if (confidence >= 70) return 'bg-warning';
+            return 'bg-danger';
+        }
+
+        function getConfidenceText(confidence) {
+            if (confidence >= 90) return '高';
+            if (confidence >= 70) return '中';
+            return '低';
+        }
+
+        function acceptReject(field, action) {
+            const card = document.getElementById(`card-${field}`);
+            const valueElement = document.getElementById(`value-${field}`);
+            
+            if (!card) return;
+            
+            const cardElement = card.querySelector('.card');
+            if (!cardElement) return;
+            
+            // 既存のクラスとスタイルを削除
+            cardElement.classList.remove('accepted', 'rejected', 'modified', 'saved');
+            cardElement.style.backgroundColor = '';
+            cardElement.style.borderColor = '';
+            
+            if (action === 'accept') {
+                cardElement.classList.add('accepted');
+                cardElement.style.backgroundColor = '#d4edda';
+                cardElement.style.borderColor = '#c3e6cb';
+            } else if (action === 'reject') {
+                cardElement.classList.add('rejected');
+                cardElement.style.backgroundColor = '#f8d7da';
+                cardElement.style.borderColor = '#f5c6cb';
+            } else if (action === 'modify') {
+                cardElement.classList.add('modified');
+                cardElement.style.backgroundColor = '#fff3cd';
+                cardElement.style.borderColor = '#ffeaa7';
+                
+                // 修正モードの入力フィールドを表示
+                const currentValue = valueElement.textContent;
+                const inputHtml = `
+                    <div class="modify-input-group">
+                        <input type="text" class="form-control form-control-sm" value="${currentValue}" id="input-${field}">
+                        <button class="btn btn-sm btn-success ms-2" onclick="saveModification('${field}')">
+                            <i class="fas fa-save"></i> 保存
+                        </button>
+                        <button class="btn btn-sm btn-secondary ms-1" onclick="cancelModification('${field}', '${currentValue}')">
+                            <i class="fas fa-times"></i> キャンセル
+                        </button>
+                    </div>
+                `;
+                valueElement.innerHTML = inputHtml;
+            }
+        }
+
+        function saveModification(field) {
+            const input = document.getElementById(`input-${field}`);
+            const valueElement = document.getElementById(`value-${field}`);
+            
+            if (input && valueElement) {
+                const newValue = input.value;
+                valueElement.textContent = newValue;
+                
+                // 修正完了の視覚的フィードバック
+                const card = document.getElementById(`card-${field}`);
+                if (card) {
+                    const cardElement = card.querySelector('.card');
+                    if (cardElement) {
+                        cardElement.classList.remove('modified');
+                        cardElement.classList.add('saved');
+                        cardElement.style.backgroundColor = '#d1ecf1';
+                        cardElement.style.borderColor = '#bee5eb';
+                    }
+                }
+            }
+        }
+
+        function cancelModification(field, originalValue) {
+            const valueElement = document.getElementById(`value-${field}`);
+            const card = document.getElementById(`card-${field}`);
+            
+            if (valueElement) {
+                valueElement.textContent = originalValue;
+            }
+            
+            if (card) {
+                const cardElement = card.querySelector('.card');
+                if (cardElement) {
+                    cardElement.classList.remove('modified', 'saved');
+                    cardElement.style.backgroundColor = '';
+                    cardElement.style.borderColor = '';
+                }
+            }
+        }
+
+        // フィールド名の表示名を取得
+        function getFieldDisplayName(fieldName) {
+            const displayNames = {
+                'chemical_name': '化学物質名',
+                'cas_number': 'CAS番号',
+                'molecular_weight': '分子量',
+                'hazard_class': '危険性分類',
+                'concentration': '濃度',
+                'flash_point': '引火点',
+                'boiling_point': '沸点',
+                'density': '密度',
+                'physical_state': '物理的状態',
+                'storage_conditions': '保管条件'
+            };
+            return displayNames[fieldName] || fieldName;
+        }
+
+        // フィールドを承認
+        function acceptField(fieldName) {
+            updateFieldStatus(fieldName, 'accept');
+        }
+
+        // フィールドを拒否
+        function rejectField(fieldName) {
+            updateFieldStatus(fieldName, 'reject');
+        }
+
+        // フィールドを修正
+        function modifyField(fieldName, currentValue) {
+            currentModifyField = fieldName;
+            document.getElementById('modify-field-name').value = getFieldDisplayName(fieldName);
+            document.getElementById('modify-value').value = currentValue;
+            new bootstrap.Modal(document.getElementById('modifyModal')).show();
+        }
+
+        // 修正確定
+        function confirmModify() {
+            const modifiedValue = document.getElementById('modify-value').value;
+            updateFieldStatus(currentModifyField, 'modify', modifiedValue);
+            bootstrap.Modal.getInstance(document.getElementById('modifyModal')).hide();
+        }
+
+        // フィールドステータス更新
+        function updateFieldStatus(fieldName, action, modifiedValue = null) {
+            const data = {
+                field_name: fieldName,
+                action: action
+            };
+            
+            if (modifiedValue) {
+                data.modified_value = modifiedValue;
+            }
+
+            fetch('/accept_reject', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    updateFieldDisplay(fieldName, action, modifiedValue);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // フィールド表示の更新
+        function updateFieldDisplay(fieldName, action, modifiedValue = null) {
+            const item = document.getElementById(`item-${fieldName}`);
+            
+            // クラスを更新
+            item.classList.remove('accepted', 'rejected', 'modified', 'saved');
+            item.classList.add(action === 'accept' ? 'accepted' : 
+                             action === 'reject' ? 'rejected' : 'modified');
+
+            // 値の表示を更新
+            if (action === 'modify' && modifiedValue) {
+                const valueElement = item.querySelector('.text-primary');
+                valueElement.textContent = modifiedValue;
+            }
+        }
+
+        // IMDSプレビュー生成
+        function generateIMDSPreview() {
+            fetch('/generate_imds_preview')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    displayIMDSPreview(data.imds_hierarchy, data.sample_info);
+                    document.getElementById('step2').classList.add('d-none');
+                    document.getElementById('step3').classList.remove('d-none');
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // IMDSプレビューの表示
+        function displayIMDSPreview(imdsHierarchy, sampleInfo) {
+            const preview = document.getElementById('imds-preview');
+            
+            let html = `
+                <div class="imds-preview p-4">
+                    <div class="row mb-3">
+                        <div class="col-12">
+                            <h6><i class="fas fa-table me-2"></i>IMDS階層構造</h6>
+                            <p class="text-muted">承認された項目のみが含まれています</p>
+                        </div>
+                    </div>
+                    <div class="imds-tree">
+                        <!-- Level 1: Component -->
+                        <div class="imds-level imds-level-1 mb-3">
+                            <div class="card">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-cube me-2"></i>Component: ${imdsHierarchy.component.name}</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p><strong>部品番号:</strong> ${imdsHierarchy.component.component_number}</p>
+                                            <p><strong>重量:</strong> ${imdsHierarchy.component.weight}g</p>
+                                            <p><strong>用途:</strong> ${imdsHierarchy.component.application}</p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <p><strong>供給者:</strong> ${imdsHierarchy.component.supplier_name}</p>
+                                            <p><strong>信頼度:</strong> <span class="badge bg-primary">${imdsHierarchy.component.confidence}%</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Level 2: Semi-Components -->
+                        ${imdsHierarchy.semi_components.map(semi => `
+                            <div class="imds-level imds-level-2 mb-3">
+                                <div class="card">
+                                    <div class="card-header bg-success text-white">
+                                        <h6 class="mb-0"><i class="fas fa-cogs me-2"></i>Semi-Component: ${semi.name}</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p><strong>重量:</strong> ${semi.weight}g</p>
+                                                <p><strong>加工プロセス:</strong> ${semi.processing_method}</p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p><strong>含有率:</strong> ${semi.content_percentage}%</p>
+                                                <p><strong>信頼度:</strong> <span class="badge bg-success">${semi.confidence}%</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                        
+                        <!-- Level 3: Materials -->
+                        ${imdsHierarchy.materials.map(material => `
+                            <div class="imds-level imds-level-3 mb-3">
+                                <div class="card">
+                                    <div class="card-header bg-warning text-dark">
+                                        <h6 class="mb-0"><i class="fas fa-flask me-2"></i>Material: ${material.name}</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p><strong>分類:</strong> ${material.category}</p>
+                                                <p><strong>材料番号:</strong> ${material.material_number}</p>
+                                                <p><strong>密度:</strong> ${material.density} g/cm³</p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p><strong>融点:</strong> ${material.melting_point}°C</p>
+                                                <p><strong>含有率:</strong> ${material.content_percentage}%</p>
+                                                <p><strong>信頼度:</strong> <span class="badge bg-warning">${material.confidence}%</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                        
+                        <!-- Level 4: Substances -->
+                        ${imdsHierarchy.substances.map(substance => `
+                            <div class="imds-level imds-level-4 mb-3">
+                                <div class="card">
+                                    <div class="card-header bg-danger text-white">
+                                        <h6 class="mb-0"><i class="fas fa-atom me-2"></i>Substance: ${substance.name}</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <p><strong>CAS番号:</strong> ${substance.cas_number}</p>
+                                                <p><strong>分子式:</strong> ${substance.molecular_formula}</p>
+                                                <p><strong>分子量:</strong> ${substance.molecular_weight} g/mol</p>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <p><strong>GADSL分類:</strong> ${substance.gadsl_classification}</p>
+                                                <p><strong>REACH登録:</strong> ${substance.reach_registration}</p>
+                                                <p><strong>含有率:</strong> ${substance.content_percentage}%</p>
+                                                <p><strong>信頼度:</strong> <span class="badge bg-danger">${substance.confidence}%</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <!-- データ品質情報 -->
+                    <div class="imds-quality mt-4">
+                        <div class="card">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>データ品質情報</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>分析方法:</strong> ${imdsHierarchy.data_quality.analytical_method}</p>
+                                        <p><strong>検証日:</strong> ${imdsHierarchy.data_quality.verification_date}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>承認者:</strong> ${imdsHierarchy.data_quality.approver}</p>
+                                        <p><strong>リサイクル可能性:</strong> ${imdsHierarchy.data_quality.recyclability}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 総濃度チェック -->
+                    <div class="imds-concentration mt-4">
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white">
+                                <h6 class="mb-0"><i class="fas fa-percentage me-2"></i>総濃度チェック</h6>
+                            </div>
+                            <div class="card-body">
+                                <p><strong>総濃度:</strong> ${imdsHierarchy.total_concentration}%</p>
+                                ${imdsHierarchy.total_concentration !== 100 ? 
+                                    '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>総濃度が100%ではありません。データの確認が必要です。</div>' : 
+                                    '<div class="alert alert-success"><i class="fas fa-check-circle me-2"></i>総濃度は正常です。</div>'
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="text-center mt-4">
+                        <button class="btn btn-success" onclick="downloadIMDS()">
+                            <i class="fas fa-download me-2"></i>IMDSファイルをダウンロード
+                        </button>
+                        <button class="btn btn-secondary ms-2" onclick="resetProcess()">
+                            <i class="fas fa-redo me-2"></i>最初からやり直す
+                        </button>
+                    </div>
+                </div>
+            `;
+            preview.innerHTML = html;
+        }
+
+        // IMDSファイルダウンロード（シミュレーション）
+        function downloadIMDS() {
+            alert('IMDSファイルのダウンロード機能は実装予定です。');
+        }
+
+        // プロセスリセット
+        function resetProcess() {
+            document.getElementById('step2').classList.add('d-none');
+            document.getElementById('step3').classList.add('d-none');
+            document.getElementById('step1').classList.remove('d-none');
+        }
+
+        // チャット機能
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const message = input.value.trim();
+            
+            if (message) {
+                addChatMessage(message, 'user');
+                input.value = '';
+                
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message: message })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    addChatMessage(data.response, 'assistant');
+                })
+                .catch(error => console.error('Error:', error));
+            }
+        }
+
+        // よくある質問
+        function askQuestion(question) {
+            document.getElementById('chat-input').value = question;
+            sendChatMessage();
+        }
+
+        // チャットメッセージ追加
+        function addChatMessage(message, sender) {
+            const chatContainer = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+            
+            messageDiv.innerHTML = `
+                <div class="chat-bubble ${sender}">
+                    ${message}
+                </div>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // Enterキーでチャット送信
+        document.getElementById('chat-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendChatMessage();
+            }
+        });
+
+        // ページ読み込み時にドロップゾーンを初期化
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDropZone();
+            initializeDraggableFiles();
+        });
+
+        function initializeDraggableFiles() {
+            // ドラッグ可能なファイルアイテムの初期化
+            const draggableFiles = document.querySelectorAll('.draggable-file');
+            
+            draggableFiles.forEach(fileItem => {
+                const filename = fileItem.getAttribute('data-filename');
+                
+                // ファイルアイテム全体のドラッグイベント
+                fileItem.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', filename);
+                    e.dataTransfer.effectAllowed = 'copy';
+                    fileItem.style.opacity = '0.5';
+                    
+                    // 実際のファイルオブジェクトを作成
+                    fetch(`/static/samples/${filename}`)
+                        .then(response => response.blob())
+                        .then(blob => {
+                            const file = new File([blob], filename, { type: 'application/pdf' });
+                            e.dataTransfer.setData('application/pdf', file);
+                            e.dataTransfer.files = [file];
+                        })
+                        .catch(error => {
+                            console.error('Error loading file:', error);
+                        });
+                });
+                
+                fileItem.addEventListener('dragend', (e) => {
+                    fileItem.style.opacity = '1';
+                });
+            });
+        }
+
+        function initializeDropZone() {
+            const dropZone = document.getElementById('dropZone');
+            const uploadProgress = document.getElementById('uploadProgress');
+
+            if (!dropZone) return;
+
+            // ドラッグオーバーイベント
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('dragover');
+            });
+
+            // ドラッグリーブイベント
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!dropZone.contains(e.relatedTarget)) {
+                    dropZone.classList.remove('dragover');
+                }
+            });
+
+            // ドロップイベント
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('dragover');
+                
+                const files = e.dataTransfer.files;
+                const text = e.dataTransfer.getData('text/plain');
+                
+                if (files.length > 0) {
+                    // 実際のファイルがドロップされた場合
+                    handleFileUpload(files[0]);
+                } else if (text) {
+                    // テキストデータ（ファイル名）がドロップされた場合
+                    simulateFileDrop(text);
+                }
+            });
+        }
+
+        function handleFileUpload(file) {
+            console.log('File uploaded:', file.name);
+            
+            // どのファイルでも受け入れる
+            if (!file.name.toLowerCase().endsWith('.pdf')) {
+                alert('PDFファイルをドロップしてください。');
+                return;
+            }
+
+            // ドロップエリアの表示を更新
+            showUploadProgress();
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload_sds', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Upload response:', data);
+                hideUploadProgress();
+                
+                if (data.success) {
+                    // セッションストレージに保存
+                    sessionStorage.setItem('extraction_result', JSON.stringify(data.extraction_result));
+                    sessionStorage.setItem('imds_hierarchy', JSON.stringify(data.imds_hierarchy));
+                    sessionStorage.setItem('uploaded_file', data.uploaded_file);
+                    sessionStorage.setItem('sample_id', data.sample_id);
+                    
+                    // 自動的にIMDS変換結果を表示
+                    if (data.auto_convert) {
+                        displayExtractionResults(data.extraction_result);
+                        displayIMDSPreview(data.imds_hierarchy);
+                        showStep(2);
+                    }
+                } else {
+                    alert(data.error || 'アップロードに失敗しました。');
+                }
+            })
+            .catch(error => {
+                hideUploadProgress();
+                console.error('Upload error:', error);
+                alert('アップロード中にエラーが発生しました: ' + error.message);
+            });
+        }
+
+        function showUploadProgress() {
+            const uploadProgress = document.getElementById('uploadProgress');
+            const dropZone = document.getElementById('dropZone');
+            
+            if (uploadProgress) {
+                uploadProgress.classList.remove('d-none');
+            }
+            if (dropZone) {
+                dropZone.classList.add('uploading');
+            }
+        }
+
+        function hideUploadProgress() {
+            const uploadProgress = document.getElementById('uploadProgress');
+            const dropZone = document.getElementById('dropZone');
+            
+            if (uploadProgress) {
+                uploadProgress.classList.add('d-none');
+            }
+            if (dropZone) {
+                dropZone.classList.remove('uploading');
+            }
+        }
+
+        function showStep(step) {
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            
+            // 要素が存在するかチェック
+            if (step1) step1.classList.add('d-none');
+            if (step2) step2.classList.add('d-none');
+            if (step3) step3.classList.add('d-none');
+
+            if (step === 1 && step1) {
+                step1.classList.remove('d-none');
+            } else if (step === 2 && step2) {
+                step2.classList.remove('d-none');
+            } else if (step === 3 && step3) {
+                step3.classList.remove('d-none');
+            }
+        }
+
+        function simulateFileDrop(filename) {
+            console.log('Simulating file drop for:', filename);
+            
+            // どのファイルでも受け入れる
+            if (!filename.toLowerCase().endsWith('.pdf')) {
+                alert('PDFファイルをドロップしてください。');
+                return;
+            }
+
+            // ドロップエリアの表示を更新
+            showUploadProgress();
+
+            // ファイルオブジェクトをシミュレート
+            const formData = new FormData();
+            const blob = new Blob([''], { type: 'application/pdf' });
+            const file = new File([blob], filename, { type: 'application/pdf' });
+            formData.append('file', file);
+
+            fetch('/upload_sds', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                console.log('Upload response:', data);
+                hideUploadProgress();
+                
+                if (data.success) {
+                    // セッションストレージに保存
+                    sessionStorage.setItem('extraction_result', JSON.stringify(data.extraction_result));
+                    sessionStorage.setItem('imds_hierarchy', JSON.stringify(data.imds_hierarchy));
+                    sessionStorage.setItem('uploaded_file', data.uploaded_file);
+                    sessionStorage.setItem('sample_id', data.sample_id);
+                    
+                    // 自動的にIMDS変換結果を表示
+                    if (data.auto_convert) {
+                        displayExtractionResults(data.extraction_result);
+                        displayIMDSPreview(data.imds_hierarchy);
+                        showStep(2);
+                    }
+                } else {
+                    alert(data.error || 'アップロードに失敗しました。');
+                }
+            })
+            .catch(error => {
+                hideUploadProgress();
+                console.error('Upload error:', error);
+                alert('アップロード中にエラーが発生しました: ' + error.message);
+            });
+        }
+    </script>
+</body>
+</html> 
