@@ -526,5 +526,16 @@ def chat():
         "timestamp": datetime.now().strftime("%H:%M")
     })
 
+@app.route('/static/samples/<filename>')
+def serve_pdf(filename):
+    """PDFファイルを配信する専用ルート"""
+    try:
+        response = app.send_static_file(f'samples/{filename}')
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'inline; filename={filename}'
+        return response
+    except Exception as e:
+        return f"PDF file not found: {filename}", 404
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5001) 
