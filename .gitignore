@@ -133,7 +133,8 @@ uploads/
 static/temp/
 *.xlsx
 *.xls
-*.pdf
+# Allow sample PDF files
+!static/samples/*.pdf
 
 # IDE
 .vscode/
