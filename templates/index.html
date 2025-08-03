@@ -189,7 +189,7 @@
         <!-- ヘッダー -->
         <div class="row bg-primary text-white py-3">
             <div class="col">
-                <h1 class="mb-0">
+                <h1 class="mb-0" style="cursor: pointer;" onclick="goToHome()">
                     <i class="fas fa-flask me-2"></i>
                     化学物質管理AI支援サービス
                 </h1>
@@ -246,7 +246,7 @@
                                 <br><small class="text-muted">MKケミカル株式会社</small>
                             </div>
                             <div>
-                                <a href="/view_sds/mk_chemical/ethanol" class="btn btn-sm btn-info text-dark">
+                                <a href="/static/samples/mk_ethanol_et9901.pdf" target="_blank" class="btn btn-sm btn-info text-dark">
                                     <i class="fas fa-eye me-1"></i>PDF確認
                                 </a>
                             </div>
@@ -257,7 +257,7 @@
                                 <br><small class="text-muted">KAOChemical株式会社</small>
                             </div>
                             <div>
-                                <a href="/view_sds/kao_chemical/surfactant" class="btn btn-sm btn-info text-dark">
+                                <a href="/static/samples/kao_surfactant_ks2000.pdf" target="_blank" class="btn btn-sm btn-info text-dark">
                                     <i class="fas fa-eye me-1"></i>PDF確認
                                 </a>
                             </div>
@@ -268,7 +268,7 @@
                                 <br><small class="text-muted">ICO RALLY Inc.</small>
                             </div>
                             <div>
-                                <a href="/view_sds/ico_rally/ptfe" class="btn btn-sm btn-info text-dark">
+                                <a href="/static/samples/ico_ptfe_pt5000.pdf" target="_blank" class="btn btn-sm btn-info text-dark">
                                     <i class="fas fa-eye me-1"></i>PDF確認
                                 </a>
                             </div>
@@ -951,6 +951,16 @@
             document.getElementById('step2').classList.add('d-none');
             document.getElementById('step3').classList.add('d-none');
             document.getElementById('step1').classList.remove('d-none');
+        }
+
+        // ホーム画面に戻る
+        function goToHome() {
+            // ステップをリセット
+            resetProcess();
+            // タブをSDS→IMDS変換に戻す
+            document.getElementById('sds-tab').click();
+            // ページトップにスクロール
+            window.scrollTo(0, 0);
         }
 
         // チャット機能
